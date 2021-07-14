@@ -51,3 +51,6 @@ loggers:
   MOTION_SENSOR:
     level: DEBUG
     handlers: [file, console]
+  StressTest:
+    level: DEBUG
+    handlers: [file, console]
