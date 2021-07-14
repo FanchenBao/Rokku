@@ -47,10 +47,10 @@ def get_device_mac(interface='eth0') -> str:
     return mac_addr[:mac_addr_len]
 
 
-def stress_test(num_sensors: str, rd: str, duration: int) -> None:
+def stress_test(num_sensors: str, rd: str, power_range: int, duration: int) -> None:
     with open(f'stress_test_summary.csv', 'a', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        for power in range(3):
+        for power in range(power_range):
             emitter_id = EMITTER_MAP[get_device_mac()[9:]]
             mac = f'{num_sensors}{rd}:{emitter_id}:{power:02}'
             interval = 1 / (2**power)
@@ -88,13 +88,13 @@ if __name__ == '__main__':
             if msg == 'exit':
                 break
             try:
-                num_sensors, rd, duration = msg.split('-')
+                num_sensors, rd, power_range, duration = msg.split('-')
             except Exception:
                 logger.error('MQTT message wrong')
                 break
-            logger.info(f'Stress test START! number of sensors: {num_sensors}, round: {rd}, duration: {duration}')
+            logger.info(f'Stress test START! number of sensors: {num_sensors}, round: {rd}, power_range: {power_range}, duration: {duration}')
             try:
-                stress_test(num_sensors, rd, int(duration))
+                stress_test(num_sensors, rd, int(power_range), int(duration))
             except Exception as err:
                 logger.error(f'Stress test FAILED. Error message: {err}')
                 break

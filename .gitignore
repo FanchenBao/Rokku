@@ -299,3 +299,6 @@ dmypy.json
 #VisualStudioCode Patch
 # Ignore all local history of files
 .history
+
+# ignore stress test csv
+stress_test_summary.csv
