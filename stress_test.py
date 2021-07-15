@@ -94,7 +94,7 @@ if __name__ == '__main__':
                 logger.error('MQTT message wrong')
                 break
             emitters = json.loads(emitters)
-            if get_device_mac()[9:] not in emitters:
+            if EMITTER_MAP[get_device_mac()[9:]] not in emitters:
                 logger.info('Not my turn yet')
                 continue
             logger.info(f'Stress test START! emitters: {emitters}, round: {rd}, power_range: {power_range}, duration: {duration}')
