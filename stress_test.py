@@ -8,6 +8,7 @@ import re
 import logging
 import yaml
 import csv
+import json
 
 ROOT = Path('.').absolute().parent
 EMIT = ROOT.joinpath('probe_request_injection/emit/emit.sh')
@@ -47,12 +48,12 @@ def get_device_mac(interface='eth0') -> str:
     return mac_addr[:mac_addr_len]
 
 
-def stress_test(num_sensors: str, rd: str, power_range: int, duration: int) -> None:
+def stress_test(num_emitters: str, rd: str, power_range: int, duration: int) -> None:
     with open(f'stress_test_summary.csv', 'a', newline='') as csvfile:
         writer = csv.writer(csvfile)
         for power in range(power_range):
             emitter_id = EMITTER_MAP[get_device_mac()[9:]]
-            mac = f'{num_sensors}{rd}:{emitter_id}:{power:02}'
+            mac = f'{num_emitters}{rd}:{emitter_id}:{power:02}'
             interval = 1 / (2**power)
             subprocess.run(f"{EMIT} -i wlan1 -c 10 --interval {interval} --mac {mac}", shell=True, text=True, capture_output=True)
             start_time = int(time() * 1000)
@@ -65,7 +66,7 @@ def stress_test(num_sensors: str, rd: str, power_range: int, duration: int) -> N
             match = re.search(r'Sent\s(\d+)\spackets', p.stdout)
             logger.info(f'Interval {interval} complete')
             writer.writerow(
-                [num_sensors, rd, interval, emitter_id, match.group(1), start_time, int(time() * 1000)],
+                [num_emitters, rd, interval, emitter_id, match.group(1), start_time, int(time() * 1000)],
             )
 
 
@@ -80,7 +81,7 @@ if __name__ == '__main__':
 
     with open(f'stress_test_summary.csv', 'a', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(['num_sensors', 'round', 'interval', 'emitter_id', 'emit_count', 'start', 'end'])
+        writer.writerow(['num_emitters', 'round', 'interval', 'emitter_id', 'emit_count', 'start', 'end'])
 
     while True:
         if not q.empty():
@@ -88,13 +89,17 @@ if __name__ == '__main__':
             if msg == 'exit':
                 break
             try:
-                num_sensors, rd, power_range, duration = msg.split('-')
+                emitters, rd, power_range, duration = msg.split('-')
             except Exception:
                 logger.error('MQTT message wrong')
                 break
-            logger.info(f'Stress test START! number of sensors: {num_sensors}, round: {rd}, power_range: {power_range}, duration: {duration}')
+            emitters = json.loads(emitters)
+            if get_device_mac()[9:] not in emitters:
+                logger.info('Not my turn yet')
+                continue
+            logger.info(f'Stress test START! emitters: {emitters}, round: {rd}, power_range: {power_range}, duration: {duration}')
             try:
-                stress_test(num_sensors, rd, int(power_range), int(duration))
+                stress_test(len(emitters), rd, int(power_range), int(duration))
             except Exception as err:
                 logger.error(f'Stress test FAILED. Error message: {err}')
                 break
